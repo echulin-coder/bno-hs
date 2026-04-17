@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Black & Orange - Growth Assessment</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel para compilar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { margin: 0; background-color: #171717; }
+        .perspective-\[1000px\] { perspective: 1000px; }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-neutral-900 text-white font-sans antialiased min-h-screen flex items-center justify-center">
+
+    <div id="root" class="w-full max-w-md"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONOS INTEGRADOS (Sustituyendo lucide-react) ---
+        const Trophy = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>;
+        const ChevronRight = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+        const ChevronLeft = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>;
+        const User = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        const Star = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+        const Play = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>;
+        const Goal = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>;
+
+        // --- CONFIGURACIÓN DE DATOS ESTRICTOS ---
+        const DIAGNOSTIC_OPTIONS = [
+          { text: "Se generan leads, pero no hay crecimiento predecible o de forma consistente", type: "BOOMS" },
+          { text: "Marketing, ventas y operación no están alineados", type: "BOOMS" },
+          { text: "No existe una estrategia clara de crecimiento", type: "BOOMS" },
+          { text: "Se está implementando HubSpot, pero aún no se está percibiendo el verdadero valor de la plataforma", type: "BOOST" },
+          { text: "El equipo no usa correctamente el CRM", type: "BOOST" },
+          { text: "Necesitamos ayuda para configurar / optimizar HubSpot", type: "BOOST" }
+        ];
+
+        const ICP_BOOMS = [
+          { question: "1. Revenue Empresa", options: [{ text: "10 MDD+", value: 1 }, { text: "5 MDD", value: 0.8 }, { text: "3 MDD", value: 0.6 }, { text: "1.5 MDD", value: 0.3 }, { text: "Menos de 1.5 MDD", value: 0 }] },
+          { question: "2. Número de empleados", options: [{ text: "200 - 1000", value: 1 }, { text: "30 - 200", value: 0.8 }, { text: "Más de 1000", value: 0.6 }, { text: "Menos de 30", value: 0.3 }] },
+          { question: "3. País", options: [{ text: "México", value: 1 }, { text: "USA", value: 0.8 }, { text: "Colombia / Chile", value: 0.6 }, { text: "Brasil o resto LATAM", value: 0.3 }, { text: "Otros idiomas / zonas horarias muy distintas", value: 0 }] },
+          { question: "4. Industria", options: [{ text: "Educación / Finanzas", value: 1 }, { text: "Turismo, Real Estate, B2B, Salud, IT", value: 0.8 }, { text: "Industrial, Logística, Servicios profesionales, SaaS", value: 0.6 }, { text: "Retail (incluye e-commerce)", value: 0.3 }, { text: "Sector público / Consumo masivo", value: 0 }] },
+          { question: "5. Equipo de Marketing", options: [{ text: "10 personas", value: 1 }, { text: "5 personas", value: 0.8 }, { text: "3 personas", value: 0.6 }, { text: "1 o 0", value: 0.3 }] },
+          { question: "6. CRM", options: [{ text: "HubSpot Pro / Enterprise", value: 1 }, { text: "Salesforce / SAP / Dynamics / Oracle (con intención de migrar a Hubspot)", value: 0.8 }, { text: "Pipedrive / HubSpot Starter / Zoho (con intención de migrar a Hubspot Pro o superior)", value: 0.6 }, { text: "Excel / Sin CRM / Odoo (con intención de migrar a Hubspot)", value: 0.3 }] }
+        ];
+
+        const ICP_BOOST = [
+          { question: "1. Facturación", options: [{ text: "15+ M USD", value: 1 }, { text: "7+ M USD", value: 0.8 }, { text: "2 a 7 M USD", value: 0.6 }, { text: "Menos de 2 M USD", value: 0.3 }, { text: "0", value: 0 }] },
+          { question: "2. Rol del Stakeholder", options: [{ text: "Dirección (TI, Marketing, Área funcional)", value: 1 }, { text: "Gerencias / PM / Integrador", value: 0.8 }, { text: "Coordinador / Compras / Finanzas", value: 0.6 }, { text: "Becario / Trainee", value: 0.3 }] },
+          { question: "3. Industria", options: [{ text: "Finanzas, Educación, Turismo", value: 1 }, { text: "Bienes raíces, Industrial, Salud, Retail", value: 0.8 }, { text: "B2B SaaS", value: 0.6 }, { text: "Servicios profesionales, Logística", value: 0.3 }, { text: "Restaurantes / Consumo masivo / Otros", value: 0 }] },
+          { question: "4. País", options: [{ text: "México", value: 1 }, { text: "USA", value: 0.8 }, { text: "Colombia / Chile", value: 0.6 }, { text: "Brasil / LATAM", value: 0.3 }, { text: "Otros idiomas", value: 0 }] },
+          { question: "5. Empleados", options: [{ text: "200 - 1000", value: 1 }, { text: "50 - 200", value: 0.8 }, { text: "Más de 1000", value: 0.6 }, { text: "Menos de 50", value: 0.3 }] },
+          { question: "6. Equipo de Marketing", options: [{ text: "6+", value: 1 }, { text: "3+", value: 0.8 }, { text: "2", value: 0.6 }, { text: "1", value: 0.3 }] },
+          { question: "7. Equipo Comercial", options: [{ text: "70+", value: 1 }, { text: "25 a 70", value: 0.8 }, { text: "10 a 25", value: 0.6 }, { text: "Menos de 10", value: 0.3 }, { text: "0", value: 0 }] },
+          { question: "8. CRM", options: [{ text: "HubSpot Pro / Enterprise", value: 1 }, { text: "Salesforce / SAP / Dynamics / Oracle (con intención de migrar a Hubspot)", value: 0.8 }, { text: "Pipedrive / HubSpot Starter / Zoho (con intención de migrar a Hubspot Pro o superior)", value: 0.6 }, { text: "Excel / Sin CRM / Odoo (con intención de migrar a Hubspot)", value: 0.3 }] },
+          { question: "9. Madurez tecnológica", options: [{ text: "Procesos mapeados / experiencia", value: 1 }, { text: "Documentación clara", value: 0.8 }, { text: "Baja pero con intención", value: 0.6 }, { text: "Muy baja", value: 0.3 }] }
+        ];
+
+        // --- COMPONENTE PRINCIPAL ---
+        function App() {
+          const [step, setStep] = useState('intro');
+          const [leaderboard, setLeaderboard] = useState([]);
+          const [userName, setUserName] = useState('');
+          const [diagnosisType, setDiagnosisType] = useState(null);
+          const [currentIcpQuestion, setCurrentIcpQuestion] = useState(0);
+          const [icpScores, setIcpScores] = useState([]);
+          const [finalScore, setFinalScore] = useState(0);
+          const [fitLevel, setFitLevel] = useState('');
+          const [gameAttempts, setGameAttempts] = useState(0);
+          
+          const [shotsTaken, setShotsTaken] = useState(0);
+          const [goals, setGoals] = useState(0);
+          const [isShooting, setIsShooting] = useState(false);
+          const [ballPos, setBallPos] = useState({ x: '50%', y: '80px', scale: 1 });
+          const [goaliePos, setGoaliePos] = useState('50%');
+          const [shotFeedback, setShotFeedback] = useState(null);
+
+          const [aiRecommendation, setAiRecommendation] = useState(null);
+          const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+          const resetSession = () => {
+            setUserName('');
+            setDiagnosisType(null);
+            setCurrentIcpQuestion(0);
+            setIcpScores([]);
+            setFinalScore(0);
+            setFitLevel('');
+            setGameAttempts(0);
+            setShotsTaken(0);
+            setGoals(0);
+            setAiRecommendation(null);
+            setIsGeneratingAI(false);
+            setStep('intro');
+          };
+
+          const calculateResult = () => {
+            const totalQuestions = diagnosisType === 'BOOMS' ? ICP_BOOMS.length : ICP_BOOST.length;
+            const sum = icpScores.reduce((a, b) => a + b, 0);
+            const rawScore = (sum / totalQuestions) * 10;
+            const roundedScore = Math.round(rawScore * 10) / 10;
+            
+            setFinalScore(roundedScore);
+            if (roundedScore >= 8) setFitLevel('Alto fit');
+            else if (roundedScore >= 5) setFitLevel('Fit medio');
+            else setFitLevel('Bajo fit');
+            
+            let attempts = Math.floor(roundedScore / 2);
+            if (attempts < 1) attempts = 1;
+            setGameAttempts(attempts);
+            setStep('result');
+          };
+
+          const generateAIRecommendation = async () => {
+            setIsGeneratingAI(true);
+            setAiRecommendation(null);
+            const apiKey = ""; // La API Key se inyectará dinámicamente si está configurada en la plataforma o puede dejarse vacía si el entorno la soporta.
+            
+            const questions = diagnosisType === 'BOOMS' ? ICP_BOOMS : ICP_BOOST;
+            const answersContext = questions.map((q, idx) => {
+               const selectedOption = q.options.find(opt => opt.value === icpScores[idx]);
+               return `${q.question}: ${selectedOption ? selectedOption.text : 'N/A'}`;
+            }).join(', ');
+
+            const prompt = `Actúa como un consultor experto de la agencia B2B Black & Orange (expertos en HubSpot). Un cliente potencial acaba de completar un diagnóstico en un evento y resultó en la categoría ${diagnosisType} con un nivel de fit de ${finalScore}/10. Sus datos de negocio son: ${answersContext}. Basado en este perfil específico, escribe una recomendación estratégica muy breve, altamente personalizada, persuasiva y directa (máximo 3 oraciones) sobre cuál debería ser su próximo gran paso con HubSpot o su estrategia de crecimiento. Termina el mensaje con una frase motivadora rápida que haga analogía con "meter un gol" en su negocio.`;
+
+            const fetchWithRetry = async (retries = 3, delay = 1000) => {
+              try {
+                // Fallback de texto si no hay clave API configurada para el host externo
+                if (!apiKey && typeof __app_id === 'undefined') {
+                   return `¡Tu perfil ${diagnosisType} tiene un gran potencial! Asegúrate de alinear tus equipos comerciales para maximizar HubSpot. ¡Es momento de entrar a la cancha y anotar el gol del crecimiento!`;
+                }
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: { parts: [{ text: "Eres un consultor de ventas B2B brillante y carismático, experto en HubSpot." }] }
+                  })
+                });
+                if (!response.ok) throw new Error('API Error');
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "¡Excelente perfil! Tienes una gran oportunidad de crecimiento con HubSpot.";
+              } catch (error) {
+                if (retries > 0) {
+                  await new Promise(res => setTimeout(res, delay));
+                  return fetchWithRetry(retries - 1, delay * 2);
+                }
+                return `¡Gran alineación en tu estrategia! Tu diagnóstico indica un camino claro hacia la escalabilidad. ¡Tira a gol y asegura el éxito de tus métricas!`;
+              }
+            };
+
+            const resultText = await fetchWithRetry();
+            setAiRecommendation(resultText);
+            setIsGeneratingAI(false);
+          };
+
+          const handleShoot = (zone) => {
+            if (isShooting) return;
+            setIsShooting(true);
+            setShotFeedback(null);
+
+            const zoneMap = { 'left': '20%', 'center': '50%', 'right': '80%' };
+            setBallPos({ x: zoneMap[zone], y: '70%', scale: 0.6 });
+
+            const isGoal = Math.random() < 0.65;
+            
+            setTimeout(() => {
+              if (isGoal) {
+                const wrongZones = Object.keys(zoneMap).filter(z => z !== zone);
+                const randomWrongZone = wrongZones[Math.floor(Math.random() * wrongZones.length)];
+                setGoaliePos(zoneMap[randomWrongZone]);
+                setShotFeedback('GOL');
+                setGoals(prev => prev + 1);
+              } else {
+                setGoaliePos(zoneMap[zone]);
+                setShotFeedback('ATAJADO');
+              }
+            }, 100);
+
+            setTimeout(() => {
+              setShotsTaken(prev => prev + 1);
+              setTimeout(() => {
+                setIsShooting(false);
+                setShotFeedback(null);
+                setBallPos({ x: '50%', y: '80px', scale: 1 });
+                setGoaliePos('50%');
+                
+                if (shotsTaken + 1 >= gameAttempts) {
+                  const newLeaderboard = [...leaderboard, { name: userName, goals: goals + (isGoal ? 1 : 0), score: finalScore }];
+                  newLeaderboard.sort((a, b) => b.goals - a.goals || b.score - a.score);
+                  setLeaderboard(newLeaderboard.slice(0, 10));
+                  setStep('game_result');
+                }
+              }, 500);
+            }, 1200);
+          };
+
+          return (
+            <div className="w-full h-full sm:min-h-[85vh] bg-black sm:rounded-3xl shadow-2xl overflow-hidden relative border-none sm:border border-neutral-800 flex flex-col">
+              
+              {!['game', 'game_intro'].includes(step) && (
+                <div className="pt-8 pb-4 px-6 text-center border-b border-neutral-800 shrink-0">
+                  <h1 className="text-2xl font-black tracking-tight uppercase text-white">
+                    Black <span className="text-orange-500">&</span> Orange
+                  </h1>
+                  <p className="text-xs text-neutral-400 mt-1 uppercase tracking-widest">Growth Assessment</p>
+                </div>
+              )}
+
+              <div className="flex-1 flex flex-col overflow-y-auto w-full">
+                
+                {/* PASO 0: INTRO */}
+                {step === 'intro' && (
+                  <div className="flex-1 flex flex-col justify-center px-8 py-10 space-y-8 animate-fade-in w-full">
+                    <div className="text-center space-y-3">
+                      <Trophy className="w-16 h-16 text-orange-500 mx-auto" />
+                      <h2 className="text-3xl font-bold leading-tight">Mide tu potencial y gana</h2>
+                      <p className="text-neutral-400">Descubre si necesitas BOOMS o BOOST y demuestra tu habilidad en la cancha.</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <label className="block text-sm font-semibold text-neutral-300">Tu nombre para el ranking:</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-4 text-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+                        placeholder="Ej. Juan Pérez"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && userName.trim() && setStep('diagnosis')}
+                      />
+                      <button 
+                        disabled={!userName.trim()}
+                        onClick={() => setStep('diagnosis')}
+                        className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-neutral-800 disabled:text-neutral-500 text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 text-lg"
+                      >
+                        <span>Comenzar</span>
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    {leaderboard.length > 0 && (
+                      <button 
+                        onClick={() => setStep('leaderboard')}
+                        className="text-neutral-500 text-sm font-semibold underline text-center w-full"
+                      >
+                        Ver Ranking Actual
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* PASO 1: DIAGNÓSTICO */}
+                {step === 'diagnosis' && (
+                  <div className="flex-1 flex flex-col px-6 py-8 animate-fade-in w-full">
+                    <span className="text-orange-500 font-bold text-sm mb-2">Paso 1 de 2</span>
+                    <h2 className="text-2xl font-bold mb-6">¿Cuál es el principal reto hoy?</h2>
+                    
+                    <div className="space-y-3 flex-1 overflow-y-auto pb-4">
+                      {DIAGNOSTIC_OPTIONS.map((opt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setDiagnosisType(opt.type);
+                            setStep('icp');
+                          }}
+                          className="w-full text-left bg-neutral-900 border border-neutral-800 hover:border-orange-500 p-5 rounded-xl transition-all active:scale-[0.98] group"
+                        >
+                          <p className="text-neutral-200 text-sm md:text-base leading-relaxed group-hover:text-white">{opt.text}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 2: ICP WIZARD */}
+                {step === 'icp' && (
+                  <div className="flex-1 flex flex-col px-6 py-8 animate-fade-in w-full">
+                    <div className="flex justify-between items-center mb-6">
+                      <span className="text-orange-500 font-bold text-sm bg-orange-500/10 px-3 py-1 rounded-full">
+                        Track {diagnosisType}
+                      </span>
+                      <span className="text-neutral-500 text-sm font-semibold">
+                        {currentIcpQuestion + 1} / {diagnosisType === 'BOOMS' ? ICP_BOOMS.length : ICP_BOOST.length}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-neutral-800 h-2 rounded-full mb-8">
+                      <div 
+                        className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${((currentIcpQuestion + 1) / (diagnosisType === 'BOOMS' ? ICP_BOOMS.length : ICP_BOOST.length)) * 100}%` }}
+                      ></div>
+                    </div>
+
+                    <h2 className="text-xl md:text-2xl font-bold mb-6">
+                      {diagnosisType === 'BOOMS' 
+                        ? ICP_BOOMS[currentIcpQuestion].question 
+                        : ICP_BOOST[currentIcpQuestion].question}
+                    </h2>
+
+                    <div className="space-y-3 flex-1 overflow-y-auto pb-4">
+                      {(diagnosisType === 'BOOMS' ? ICP_BOOMS : ICP_BOOST)[currentIcpQuestion].options.map((opt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            const newScores = [...icpScores, opt.value];
+                            setIcpScores(newScores);
+                            
+                            const totalQuestions = diagnosisType === 'BOOMS' ? ICP_BOOMS.length : ICP_BOOST.length;
+                            if (currentIcpQuestion + 1 < totalQuestions) {
+                              setCurrentIcpQuestion(prev => prev + 1);
+                            } else {
+                              icpScores.push(opt.value);
+                              calculateResult();
+                            }
+                          }}
+                          className="w-full text-left bg-neutral-900 border border-neutral-800 hover:border-orange-500 hover:bg-orange-500/5 p-4 rounded-xl transition-all active:scale-[0.98]"
+                        >
+                          <p className="text-neutral-200 font-medium">{opt.text}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 3: RESULTADO DIAGNÓSTICO */}
+                {step === 'result' && (
+                  <div className="flex-1 flex flex-col justify-center px-6 py-10 text-center animate-fade-in w-full">
+                    <h2 className="text-neutral-400 font-semibold mb-2 uppercase tracking-wide">Tu Diagnóstico Ideal</h2>
+                    <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600 mb-8">
+                      {diagnosisType}
+                    </div>
+
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 mb-8 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-600 to-yellow-500"></div>
+                      <div className="text-6xl font-black text-white mb-2">{finalScore} <span className="text-2xl text-neutral-500">/ 10</span></div>
+                      <div className={`text-xl font-bold px-4 py-1 rounded-full inline-block mt-2 ${
+                        fitLevel === 'Alto fit' ? 'bg-green-500/20 text-green-400' :
+                        fitLevel === 'Fit medio' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {fitLevel}
+                      </div>
+                    </div>
+
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-6 mb-8">
+                      <p className="text-neutral-300 mb-2">Según tu score, tienes:</p>
+                      <div className="text-3xl font-black text-orange-500">{gameAttempts} {gameAttempts === 1 ? 'tiro' : 'tiros'} de penal</div>
+                    </div>
+
+                    <div className="mb-8 w-full">
+                      {!aiRecommendation && !isGeneratingAI && (
+                        <button 
+                          onClick={generateAIRecommendation}
+                          className="w-full bg-neutral-800 hover:bg-neutral-700 border border-orange-500/50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2 active:scale-95"
+                        >
+                          <span>✨ Obtener Consejo Estratégico IA</span>
+                        </button>
+                      )}
+                      
+                      {isGeneratingAI && (
+                        <div className="bg-neutral-800/50 border border-neutral-700 rounded-xl p-4 animate-pulse flex justify-center items-center">
+                          <p className="text-orange-400 font-semibold flex items-center gap-2">
+                            <Star className="w-5 h-5 animate-spin" /> Analizando perfil...
+                          </p>
+                        </div>
+                      )}
+
+                      {aiRecommendation && !isGeneratingAI && (
+                        <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 border border-orange-500/50 rounded-xl p-5 text-left relative shadow-lg animate-fade-in">
+                          <div className="absolute -top-3 -right-3 bg-orange-500 text-black text-xs font-black px-3 py-1 rounded-md transform rotate-3 shadow-md border border-black">
+                            ✨ IA
+                          </div>
+                          <p className="text-sm md:text-base text-neutral-200 leading-relaxed font-medium">
+                            {aiRecommendation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <button 
+                      onClick={() => setStep('game_intro')}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-black font-black py-4 rounded-xl transition-all text-xl uppercase tracking-wide flex items-center justify-center space-x-2"
+                    >
+                      <span>¡Ir a la cancha!</span>
+                      <Play className="w-6 h-6 fill-black" />
+                    </button>
+                  </div>
+                )}
+
+                {/* PASO 4: INTRO JUEGO */}
+                {step === 'game_intro' && (
+                  <div className="flex-1 flex flex-col justify-center px-6 py-10 text-center animate-fade-in bg-green-900 relative w-full" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-80"></div>
+                    
+                    <div className="relative z-10 space-y-8">
+                      <Goal className="w-24 h-24 mx-auto text-white opacity-90" />
+                      <div>
+                        <h2 className="text-4xl font-black text-white mb-4">¡Es tu turno!</h2>
+                        <p className="text-xl text-neutral-200 bg-black/40 inline-block px-6 py-3 rounded-2xl backdrop-blur-sm border border-white/10">
+                          Tienes <strong className="text-orange-400 text-2xl mx-1">{gameAttempts}</strong> oportunidades para meter gol.
+                        </p>
+                      </div>
+                      
+                      <button 
+                        onClick={() => setStep('game')}
+                        className="w-full bg-white text-green-900 font-black py-5 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:scale-105 transition-all text-xl uppercase tracking-wide mt-8"
+                      >
+                        Tira tu primer penal
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 5: JUEGO (CANCHA) */}
+                {step === 'game' && (
+                  <div className="flex-1 flex flex-col bg-gradient-to-t from-green-600 to-green-900 relative overflow-hidden animate-fade-in w-full">
+                    <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-20 bg-black/30 backdrop-blur-sm">
+                      <div className="font-bold text-white bg-black/50 px-4 py-2 rounded-full border border-white/20">
+                        Tiros: {shotsTaken} / {gameAttempts}
+                      </div>
+                      <div className="font-black text-orange-400 bg-black/50 px-4 py-2 rounded-full border border-orange-500/30 flex items-center gap-2">
+                        <Goal className="w-5 h-5" /> {goals}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 relative mt-16 perspective-[1000px]">
+                      
+                      <div className="absolute top-[10%] left-[10%] right-[10%] h-[180px] border-t-8 border-l-8 border-r-8 border-white/90 rounded-t-lg z-10">
+                        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(45deg, white 25%, transparent 25%, transparent 75%, white 75%, white), linear-gradient(45deg, white 25%, transparent 25%, transparent 75%, white 75%, white)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 10px 10px' }}></div>
+                      </div>
+
+                      {shotFeedback && (
+                        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 transition-transform">
+                          <span className={`text-6xl font-black italic tracking-tighter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] ${shotFeedback === 'GOL' ? 'text-yellow-400' : 'text-red-500'}`}>
+                            ¡{shotFeedback}!
+                          </span>
+                        </div>
+                      )}
+
+                      <div 
+                        className="absolute z-20 transition-all duration-[500ms] ease-out w-20 h-24 flex items-end justify-center"
+                        style={{ bottom: 'calc(80% - 180px)', left: goaliePos, transform: 'translateX(-50%)' }}
+                      >
+                        <div className="relative w-full h-full flex flex-col items-center">
+                          <div className="w-8 h-8 bg-orange-500 rounded-full border-2 border-black z-10"></div>
+                          <div className="w-14 h-12 bg-black rounded-t-xl -mt-2 z-0 flex items-center justify-center">
+                            <span className="text-orange-500 text-xs font-bold">B&O</span>
+                          </div>
+                          <div className="flex gap-2 -mt-1">
+                            <div className="w-4 h-6 bg-black rounded-b-md"></div>
+                            <div className="w-4 h-6 bg-black rounded-b-md"></div>
+                          </div>
+                          <div className="absolute top-6 -left-4 w-6 h-4 bg-white rounded-full"></div>
+                          <div className="absolute top-6 -right-4 w-6 h-4 bg-white rounded-full"></div>
+                        </div>
+                      </div>
+
+                      <div className="absolute bottom-[70px] left-1/2 -translate-x-1/2 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center z-10">
+                        <div className="w-2 h-2 bg-white/60 rounded-full"></div>
+                      </div>
+
+                      <div 
+                        className="absolute z-30 transition-all duration-[600ms] ease-out flex items-center justify-center text-5xl drop-shadow-xl"
+                        style={{ bottom: ballPos.y, left: ballPos.x, transform: `translateX(-50%) scale(${ballPos.scale}) rotate(${isShooting ? '1080deg' : '0deg'})` }}
+                      >
+                        ⚽
+                      </div>
+
+                      <div className="absolute bottom-0 left-0 w-full h-1/2 flex z-40">
+                        <button 
+                          disabled={isShooting}
+                          onClick={() => handleShoot('left')}
+                          className="group flex-1 h-full flex items-end justify-center pb-6 border-r border-white/10 hover:bg-white/10 active:bg-white/20 transition-colors"
+                        >
+                          <div className="bg-black/60 border border-white/20 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md group-hover:scale-110 transition-transform flex flex-col items-center gap-1 shadow-lg">
+                            <ChevronLeft className="w-4 h-4 text-orange-400" />
+                            <span>Izquierda</span>
+                          </div>
+                        </button>
+                        
+                        <button 
+                          disabled={isShooting}
+                          onClick={() => handleShoot('center')}
+                          className="group flex-1 h-full flex items-end justify-center pb-6 border-r border-white/10 hover:bg-white/10 active:bg-white/20 transition-colors"
+                        >
+                          <div className="bg-black/60 border border-white/20 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md group-hover:scale-110 transition-transform flex flex-col items-center gap-1 shadow-lg">
+                            <div className="w-4 h-4 rounded-full border-2 border-orange-400 mb-1"></div>
+                            <span>Centro</span>
+                          </div>
+                        </button>
+                        
+                        <button 
+                          disabled={isShooting}
+                          onClick={() => handleShoot('right')}
+                          className="group flex-1 h-full flex items-end justify-center pb-6 hover:bg-white/10 active:bg-white/20 transition-colors"
+                        >
+                          <div className="bg-black/60 border border-white/20 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md group-hover:scale-110 transition-transform flex flex-col items-center gap-1 shadow-lg">
+                            <ChevronRight className="w-4 h-4 text-orange-400" />
+                            <span>Derecha</span>
+                          </div>
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* PASO 6: RESULTADO DEL JUEGO */}
+                {step === 'game_result' && (
+                  <div className="flex-1 flex flex-col justify-center px-6 py-10 text-center animate-fade-in w-full">
+                    <Trophy className="w-24 h-24 mx-auto text-yellow-500 mb-6" />
+                    <h2 className="text-3xl font-bold mb-2">¡Partida Terminada!</h2>
+                    
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 my-8 shadow-xl">
+                      <p className="text-xl text-neutral-400 mb-4">{userName}, metiste</p>
+                      <div className="text-5xl font-black text-white">
+                        <span className="text-orange-500">{goals}</span> de {gameAttempts}
+                      </div>
+                      <p className="text-xl text-neutral-400 mt-4">goles</p>
+                    </div>
+
+                    <button 
+                      onClick={() => setStep('leaderboard')}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-black font-black py-4 rounded-xl transition-all text-xl uppercase tracking-wide"
+                    >
+                      Ver Ranking General
+                    </button>
+                  </div>
+                )}
+
+                {/* PASO 7: LEADERBOARD */}
+                {step === 'leaderboard' && (
+                  <div className="flex-1 flex flex-col p-6 animate-fade-in bg-black w-full">
+                    <div className="flex items-center justify-between mb-8">
+                      <h2 className="text-2xl font-black flex items-center gap-2">
+                        <Star className="text-orange-500 w-6 h-6 fill-orange-500" />
+                        Top Goleadores
+                      </h2>
+                      {finalScore === 0 && (
+                         <button onClick={() => setStep('intro')} className="text-neutral-500 p-2">
+                           <ChevronLeft className="w-6 h-6" />
+                         </button>
+                      )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-3 pb-8">
+                      {leaderboard.length === 0 ? (
+                        <p className="text-center text-neutral-500 py-10 font-medium">Aún no hay participantes. ¡Sé el primero!</p>
+                      ) : (
+                        leaderboard.map((player, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`flex items-center justify-between p-4 rounded-2xl border ${
+                              player.name === userName && finalScore !== 0 
+                                ? 'bg-orange-500/10 border-orange-500' 
+                                : 'bg-neutral-900 border-neutral-800'
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-8 h-8 flex items-center justify-center font-black rounded-full ${
+                                idx === 0 ? 'bg-yellow-500 text-black' : 
+                                idx === 1 ? 'bg-gray-300 text-black' : 
+                                idx === 2 ? 'bg-amber-700 text-white' : 
+                                'bg-neutral-800 text-neutral-400'
+                              }`}>
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <p className={`font-bold ${player.name === userName && finalScore !== 0 ? 'text-white' : 'text-neutral-200'}`}>
+                                  {player.name}
+                                </p>
+                                <p className="text-xs text-neutral-500">Score Fit: {player.score}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl font-black text-white">{player.goals}</span>
+                              <Goal className="w-4 h-4 text-orange-500" />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="pt-4 mt-auto">
+                      <button 
+                        onClick={resetSession}
+                        className="w-full bg-white text-black font-black py-4 rounded-xl transition-all text-lg uppercase tracking-wide shadow-lg flex justify-center items-center gap-2"
+                      >
+                        <User className="w-5 h-5" />
+                        Siguiente Participante / Volver
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          );
+        }
+
+        // Renderizar la app React en el DOM
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
