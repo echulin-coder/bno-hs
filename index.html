@@ -1,414 +1,402 @@
-import React, { useState, useEffect } from 'react';
-
-// Estilos globales de tipografía para inyectar en el documento
-const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700&family=Inter:wght@300;400;500;600&display=swap');
-  
-  body {
-    background-color: #000000;
-    color: #ffffff;
-    font-family: 'Inter', sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  
-  h1, h2, h3, .font-serif {
-    font-family: 'Fraunces', serif;
-  }
-
-  .glass-card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .gradient-blob-1 {
-    background: radial-gradient(circle, rgba(254,131,1,0.25) 0%, rgba(0,0,0,0) 70%);
-  }
-  
-  .gradient-blob-2 {
-    background: radial-gradient(circle, rgba(237,139,250,0.2) 0%, rgba(0,0,0,0) 70%);
-  }
-
-  .gradient-blob-3 {
-    background: radial-gradient(circle, rgba(255,237,2,0.15) 0%, rgba(0,0,0,0) 70%);
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(254, 131, 1, 0.5);
-  }
-`;
-
-// --- DATOS ESTRUCTURADOS ---
-
-const CHALLENGES = [
-  { text: "Se generan leads, pero no hay crecimiento predecible o de forma consistente", path: "BOOMS" },
-  { text: "Marketing, ventas y operación no están alineados", path: "BOOMS" },
-  { text: "No existe una estrategia clara de crecimiento", path: "BOOMS" },
-  { text: "Se está implementando HubSpot, pero aún no se está percibiendo el verdadero valor de la plataforma", path: "BOOST" },
-  { text: "El equipo no usa correctamente el CRM", path: "BOOST" },
-  { text: "Necesitamos ayuda para configurar / optimizar HubSpot", path: "BOOST" }
-];
-
-const ICP_BOOMS = [
-  {
-    question: "¿Cuál es el modelo de ventas y ciclo comercial del cliente?",
-    options: [
-      { text: "Venta B2B consultiva con ciclos de venta largos (Alto valor)", score: 10 },
-      { text: "Venta B2B transaccional o ciclos medios", score: 6 },
-      { text: "Venta B2C o volumen masivo sin seguimiento complejo", score: 2 }
-    ]
-  },
-  {
-    question: "¿Qué tamaño tiene el equipo comercial y de marketing?",
-    options: [
-      { text: "Equipos estructurados (>5 personas) que necesitan alineación", score: 10 },
-      { text: "Equipo pequeño pero en etapa de crecimiento y estructuración", score: 7 },
-      { text: "Operación de 1-2 personas sin roles definidos", score: 3 }
-    ]
-  },
-  {
-    question: "¿Cuál es la disposición de inversión en crecimiento?",
-    options: [
-      { text: "Presupuesto definido buscando un partner estratégico integral", score: 10 },
-      { text: "Presupuesto medio, priorizando tácticas sobre estrategia", score: 6 },
-      { text: "Presupuesto muy limitado o buscando soluciones de bajo costo", score: 2 }
-    ]
-  }
-];
-
-const ICP_BOOST = [
-  {
-    question: "¿Qué nivel de licenciamiento tienen o están adquiriendo en HubSpot?",
-    options: [
-      { text: "Enterprise (o múltiples Hubs Pro)", score: 10 },
-      { text: "Professional (1 o 2 Hubs)", score: 7 },
-      { text: "Starter o Free", score: 3 }
-    ]
-  },
-  {
-    question: "¿Cuál es el nivel de complejidad de sus procesos actuales?",
-    options: [
-      { text: "Múltiples pipelines, integraciones y procesos operativos complejos", score: 10 },
-      { text: "Procesos estándar comerciales, buscando automatización básica", score: 6 },
-      { text: "Sin procesos documentados, empezando desde cero", score: 3 }
-    ]
-  },
-  {
-    question: "¿Cómo es la disposición interna para adoptar la herramienta?",
-    options: [
-      { text: "Tienen un líder de proyecto, pero les falta capacidad técnica/estratégica", score: 10 },
-      { text: "El equipo está frustrado con la herramienta actual o su adopción", score: 8 },
-      { text: "No hay nadie asignado internamente para empujar la adopción", score: 2 }
-    ]
-  }
-];
-
-const MICROCOPIES = [
-  "Analizando nivel de madurez...",
-  "Evaluando alineación comercial...",
-  "Calculando fit estratégico..."
-];
-
-export default function App() {
-  const [step, setStep] = useState(0); // 0: Hook, 1: Context, 2: Challenge, 3: ICP, 4: Result
-  const [clientName, setClientName] = useState('');
-  const [evalType, setEvalType] = useState('');
-  const [path, setPath] = useState(''); // 'BOOMS' o 'BOOST'
-  const [icpStep, setIcpStep] = useState(0);
-  const [scores, setScores] = useState([]);
-  
-  // Agregando estilos al head
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.innerHTML = fontStyles;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
-
-  const handleNext = () => setStep(prev => prev + 1);
-
-  const handleChallengeSelect = (selectedPath) => {
-    setPath(selectedPath);
-    setScores([]);
-    setIcpStep(0);
-    handleNext();
-  };
-
-  const handleIcpSelect = (score) => {
-    const newScores = [...scores, score];
-    setScores(newScores);
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner de Clientes — Black & Orange</title>
     
-    const questions = path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST;
+    <!-- Scripts de React y Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    if (icpStep < questions.length - 1) {
-      setIcpStep(prev => prev + 1);
-    } else {
-      setStep(4); // Ir a resultados
-    }
-  };
-
-  const calculateFinalScore = () => {
-    if (scores.length === 0) return 0;
-    const sum = scores.reduce((a, b) => a + b, 0);
-    return (sum / scores.length).toFixed(1);
-  };
-
-  const getFitLevel = (score) => {
-    if (score >= 8) return { level: 'Alto fit', color: 'text-green-400', indicator: '🟢' };
-    if (score >= 5) return { level: 'Fit medio', color: 'text-[#FFED02]', indicator: '🟡' };
-    return { level: 'Bajo fit', color: 'text-red-400', indicator: '🔴' };
-  };
-
-  const finalScore = calculateFinalScore();
-  const fitInfo = getFitLevel(parseFloat(finalScore));
-
-  // Enlace generado nativamente para el correo
-  const mailtoLink = `mailto:jairo@black-n-orange.com?subject=${encodeURIComponent(`Evaluación conjunta — Oportunidad Black & Orange + HubSpot (${clientName})`)}&body=${encodeURIComponent(`Hola equipo Black & Orange,\n\nMe gustaría revisar este caso con ustedes.\n\nCliente: ${clientName}\nTipo de evaluación: ${evalType}\nResultado del scanner: ${path} + Score ${finalScore}/10 (${fitInfo.level})\n\nQuedo a la espera de sus comentarios.`)}`;
-
-  // --- RENDERIZADO DE PANTALLAS ---
-
-  return (
-    <div className="relative min-h-screen bg-black text-white overflow-hidden flex flex-col items-center justify-center p-4">
-      {/* Fondos degradados */}
-      <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] gradient-blob-1 rounded-full pointer-events-none blur-3xl opacity-50 mix-blend-screen" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] gradient-blob-2 rounded-full pointer-events-none blur-3xl opacity-40 mix-blend-screen" />
-      <div className="absolute top-[20%] right-[10%] w-[40vw] h-[40vw] gradient-blob-3 rounded-full pointer-events-none blur-3xl opacity-30 mix-blend-screen" />
-
-      <div className="relative z-10 w-full max-w-md">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700&family=Inter:wght@300;400;500;600&display=swap');
         
-        {/* LOGO SIMULADO (Encabezado) */}
-        <div className="w-full flex justify-center mb-8 opacity-80">
-          <div className="flex items-center gap-2">
-             <div className="w-4 h-4 bg-[#FE8301] rounded-sm"></div>
-             <span className="font-serif font-bold text-lg tracking-wide uppercase">Black & Orange</span>
-          </div>
-        </div>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, .font-serif {
+            font-family: 'Fraunces', serif;
+        }
 
-        {/* CONTENEDOR PRINCIPAL */}
-        <div className="min-h-[450px] flex flex-col justify-center">
-          
-          {/* PASO 0 / GANCHO */}
-          {step === 0 && (
-            <div className="animate-fade-in text-center flex flex-col gap-8">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-serif mb-4 leading-tight text-white">
-                  ¿Este cliente es ideal para <span className="text-[#FE8301]">Black & Orange?</span>
-                </h1>
-                <p className="text-[#EBEAE8] text-lg font-light opacity-80">
-                  Descúbrelo en menos de 60 segundos
-                </p>
-              </div>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
 
-              <div className="flex flex-col gap-4 w-full">
-                <div className="text-left">
-                  <label className="text-sm text-gray-400 mb-2 block ml-1">Nombre del prospecto / cliente</label>
-                  <input 
-                    type="text" 
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Ej. Acme Corp"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:border-[#FE8301] transition-colors"
-                  />
+        .gradient-blob-1 {
+            background: radial-gradient(circle, rgba(254,131,1,0.2) 0%, rgba(0,0,0,0) 70%);
+        }
+        
+        .gradient-blob-2 {
+            background: radial-gradient(circle, rgba(237,139,250,0.15) 0%, rgba(0,0,0,0) 70%);
+        }
+
+        .gradient-blob-3 {
+            background: radial-gradient(circle, rgba(255,237,2,0.1) 0%, rgba(0,0,0,0) 70%);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(254, 131, 1, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const CHALLENGES = [
+            { text: "Se generan leads, pero no hay crecimiento predecible o de forma consistente", path: "BOOMS" },
+            { text: "Marketing, ventas y operación no están alineados", path: "BOOMS" },
+            { text: "No existe una estrategia clara de crecimiento", path: "BOOMS" },
+            { text: "Se está implementando HubSpot, pero aún no se percibe el verdadero valor", path: "BOOST" },
+            { text: "El equipo no usa correctamente el CRM", path: "BOOST" },
+            { text: "Necesitamos ayuda para configurar / optimizar HubSpot", path: "BOOST" }
+        ];
+
+        const ICP_BOOMS = [
+            {
+                question: "¿Cuál es el modelo de ventas y ciclo comercial del cliente?",
+                options: [
+                    { text: "Venta B2B consultiva con ciclos de venta largos (Alto valor)", score: 10 },
+                    { text: "Venta B2B transaccional o ciclos medios", score: 6 },
+                    { text: "Venta B2C o volumen masivo sin seguimiento complejo", score: 2 }
+                ]
+            },
+            {
+                question: "¿Qué tamaño tiene el equipo comercial y de marketing?",
+                options: [
+                    { text: "Equipos estructurados (>5 personas) que necesitan alineación", score: 10 },
+                    { text: "Equipo pequeño pero en etapa de crecimiento", score: 7 },
+                    { text: "Operación de 1-2 personas sin roles definidos", score: 3 }
+                ]
+            },
+            {
+                question: "¿Cuál es la disposición de inversión en crecimiento?",
+                options: [
+                    { text: "Presupuesto definido buscando un partner estratégico integral", score: 10 },
+                    { text: "Presupuesto medio, priorizando tácticas sobre estrategia", score: 6 },
+                    { text: "Presupuesto muy limitado o buscando bajo costo", score: 2 }
+                ]
+            }
+        ];
+
+        const ICP_BOOST = [
+            {
+                question: "¿Qué nivel de licenciamiento tienen o están adquiriendo?",
+                options: [
+                    { text: "Enterprise (o múltiples Hubs Pro)", score: 10 },
+                    { text: "Professional (1 o 2 Hubs)", score: 7 },
+                    { text: "Starter o Free", score: 3 }
+                ]
+            },
+            {
+                question: "¿Cuál es el nivel de complejidad de sus procesos actuales?",
+                options: [
+                    { text: "Múltiples pipelines, integraciones y procesos operativos complejos", score: 10 },
+                    { text: "Procesos estándar comerciales, buscando automatización básica", score: 6 },
+                    { text: "Sin procesos documentados, empezando desde cero", score: 3 }
+                ]
+            },
+            {
+                question: "¿Cómo es la disposición interna para adoptar la herramienta?",
+                options: [
+                    { text: "Tienen un líder de proyecto, pero les falta capacidad técnica", score: 10 },
+                    { text: "El equipo está frustrado con la herramienta actual", score: 8 },
+                    { text: "No hay nadie asignado internamente para empujar la adopción", score: 2 }
+                ]
+            }
+        ];
+
+        const MICROCOPIES = [
+            "Analizando nivel de madurez...",
+            "Evaluando alineación comercial...",
+            "Calculando fit estratégico..."
+        ];
+
+        function App() {
+            const [step, setStep] = useState(0); 
+            const [clientName, setClientName] = useState('');
+            const [evalType, setEvalType] = useState('');
+            const [path, setPath] = useState(''); 
+            const [icpStep, setIcpStep] = useState(0);
+            const [scores, setScores] = useState([]);
+
+            const handleNext = () => setStep(prev => prev + 1);
+
+            const handleChallengeSelect = (selectedPath) => {
+                setPath(selectedPath);
+                setScores([]);
+                setIcpStep(0);
+                handleNext();
+            };
+
+            const handleIcpSelect = (score) => {
+                const newScores = [...scores, score];
+                setScores(newScores);
+                const questions = path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST;
+                if (icpStep < questions.length - 1) {
+                    setIcpStep(prev => prev + 1);
+                } else {
+                    setStep(4); 
+                }
+            };
+
+            const finalScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
+
+            const getFitLevel = (score) => {
+                if (score >= 8) return { level: 'Alto fit', color: 'text-green-400', indicator: '🟢' };
+                if (score >= 5) return { level: 'Fit medio', color: 'text-[#FFED02]', indicator: '🟡' };
+                return { level: 'Bajo fit', color: 'text-red-400', indicator: '🔴' };
+            };
+
+            const fitInfo = getFitLevel(parseFloat(finalScore));
+
+            const mailtoLink = `mailto:jairo@black-n-orange.com?subject=${encodeURIComponent(`Evaluación — ${clientName}`)}&body=${encodeURIComponent(`Hola equipo,\n\nEvaluación de: ${clientName}\nTipo: ${evalType}\nResultado: ${path} | Score: ${finalScore}/10`)}`;
+
+            return (
+                <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 md:p-12">
+                    {/* Fondos dinámicos */}
+                    <div className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] gradient-blob-1 rounded-full pointer-events-none blur-3xl opacity-40" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] gradient-blob-2 rounded-full pointer-events-none blur-3xl opacity-30" />
+                    
+                    <div className="relative z-10 w-full max-w-md md:max-w-3xl lg:max-w-4xl transition-all duration-500">
+                        
+                        {/* Logo superior */}
+                        <div className="flex justify-center md:justify-start mb-12 opacity-90">
+                            <div className="flex items-center gap-3">
+                                <div className="w-5 h-5 bg-[#FE8301] rounded-sm shadow-[0_0_15px_rgba(254,131,1,0.3)]"></div>
+                                <span className="font-serif font-bold text-xl tracking-wider uppercase">Black & Orange</span>
+                            </div>
+                        </div>
+
+                        {/* Contenido Principal */}
+                        <div className="min-h-[500px] flex flex-col justify-center">
+                            
+                            {/* PASO 0 - INICIO */}
+                            {step === 0 && (
+                                <div className="animate-fade-in flex flex-col md:flex-row items-center gap-12 text-center md:text-left">
+                                    <div className="flex-1">
+                                        <h1 className="text-5xl md:text-7xl font-serif mb-6 leading-tight text-white">
+                                            ¿Es este el cliente <span className="text-[#FE8301]">ideal?</span>
+                                        </h1>
+                                        <p className="text-gray-400 text-xl font-light max-w-lg mx-auto md:mx-0">
+                                            Analiza la oportunidad en 60 segundos con nuestro scanner de fit estratégico.
+                                        </p>
+                                    </div>
+                                    <div className="w-full max-w-sm glass-card p-8 rounded-3xl shadow-2xl">
+                                        <label className="text-xs text-gray-500 uppercase tracking-widest mb-4 block">Identificar Prospecto</label>
+                                        <input 
+                                            type="text" 
+                                            value={clientName}
+                                            onChange={(e) => setClientName(e.target.value)}
+                                            placeholder="Nombre de la empresa..."
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder-white/20 focus:outline-none focus:border-[#FE8301] transition-all mb-6"
+                                        />
+                                        <button 
+                                            onClick={handleNext}
+                                            disabled={clientName.trim() === ''}
+                                            className="w-full bg-[#FE8301] hover:bg-[#ff9526] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-20 text-black font-bold rounded-2xl px-8 py-5 transition-all text-lg shadow-xl"
+                                        >
+                                            Empezar Evaluación
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASO 1 - TIPO EVALUACIÓN */}
+                            {step === 1 && (
+                                <div className="animate-fade-in text-center max-w-2xl mx-auto w-full">
+                                    <h2 className="text-4xl font-serif mb-4 italic text-white">¿Cuál es el contexto de {clientName}?</h2>
+                                    <p className="text-gray-500 mb-10">Selecciona el equipo que lidera la cuenta</p>
+                                    
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <button 
+                                            onClick={() => { setEvalType('Sales'); handleNext(); }}
+                                            className="glass-card hover:bg-[#FE8301]/5 hover:border-[#FE8301] p-10 rounded-3xl transition-all group text-left"
+                                        >
+                                            <div className="w-12 h-12 bg-[#FE8301]/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                                <svg className="w-6 h-6 text-[#FE8301]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                                            </div>
+                                            <span className="block text-2xl font-serif text-white mb-2">Nuevo Prospecto</span>
+                                            <span className="text-gray-500 text-sm">Validación para equipo de Ventas</span>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => { setEvalType('CS'); handleNext(); }}
+                                            className="glass-card hover:bg-[#ED8BFA]/5 hover:border-[#ED8BFA] p-10 rounded-3xl transition-all group text-left"
+                                        >
+                                            <div className="w-12 h-12 bg-[#ED8BFA]/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                                <svg className="w-6 h-6 text-[#ED8BFA]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                            </div>
+                                            <span className="block text-2xl font-serif text-white mb-2">Cliente Actual</span>
+                                            <span className="text-gray-500 text-sm">Validación para Customer Success</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASO 2 - RETOS (Grilla en laptop) */}
+                            {step === 2 && (
+                                <div className="animate-fade-in w-full max-w-4xl mx-auto">
+                                    <div className="text-center md:text-left mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                                        <div>
+                                            <span className="text-[#FE8301] text-xs font-bold uppercase tracking-[0.3em] mb-4 block">Paso 01</span>
+                                            <h2 className="text-3xl md:text-5xl font-serif text-white leading-tight">¿Principal desafío hoy?</h2>
+                                        </div>
+                                        <p className="text-gray-500 text-sm border-l border-white/10 pl-4">Selecciona una de las opciones</p>
+                                    </div>
+                                    
+                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {CHALLENGES.map((item, index) => (
+                                            <button 
+                                                key={index}
+                                                onClick={() => handleChallengeSelect(item.path)}
+                                                className="glass-card hover:bg-white/5 border border-white/5 hover:border-white/30 text-left p-6 rounded-2xl transition-all text-sm leading-relaxed text-gray-300 hover:text-white"
+                                            >
+                                                {item.text}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASO 3 - PREGUNTAS ICP */}
+                            {step === 3 && (
+                                <div className="animate-fade-in max-w-2xl mx-auto w-full">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <span className="text-[#ED8BFA] text-xs font-bold uppercase tracking-widest">Scanner Estratégico</span>
+                                        <span className="text-gray-500 text-xs font-mono">{icpStep + 1} / 3</span>
+                                    </div>
+
+                                    <div className="w-full bg-white/5 h-1 rounded-full mb-12 overflow-hidden">
+                                        <div 
+                                            className="bg-gradient-to-r from-[#FE8301] to-[#ED8BFA] h-full transition-all duration-700 ease-in-out"
+                                            style={{ width: `${((icpStep + 1) / 3) * 100}%` }}
+                                        />
+                                    </div>
+                                    
+                                    <h2 className="text-3xl md:text-4xl font-serif text-white mb-10 leading-tight">
+                                        {(path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST)[icpStep].question}
+                                    </h2>
+
+                                    <div className="flex flex-col gap-4">
+                                        {(path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST)[icpStep].options.map((option, index) => (
+                                            <button 
+                                                key={index}
+                                                onClick={() => handleIcpSelect(option.score)}
+                                                className="glass-card hover:bg-white/10 hover:translate-x-2 text-left p-6 rounded-2xl transition-all text-gray-300 hover:text-white flex justify-between items-center group"
+                                            >
+                                                <span>{option.text}</span>
+                                                <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASO 4 - RESULTADO (Diseño Premium Laptop) */}
+                            {step === 4 && (
+                                <div className="animate-fade-in w-full max-w-4xl mx-auto">
+                                    <div className="glass-card rounded-[40px] p-8 md:p-16 relative overflow-hidden border-white/10 shadow-2xl">
+                                        <div className={`absolute top-0 left-0 w-full h-2 ${path === 'BOOMS' ? 'bg-[#FE8301]' : 'bg-[#ED8BFA]'}`}></div>
+                                        
+                                        <div className="grid md:grid-cols-2 gap-12 items-center">
+                                            {/* Columna Info */}
+                                            <div>
+                                                <div className="mb-8">
+                                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Reporte de Fit</span>
+                                                    <h2 className="text-5xl font-serif text-white mt-4">{clientName}</h2>
+                                                </div>
+
+                                                <div className="space-y-6">
+                                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                                        <div className="text-[10px] uppercase text-gray-500 mb-3 tracking-widest">Metodología Ideal</div>
+                                                        <h3 className={`text-3xl font-serif font-bold mb-3 ${path === 'BOOMS' ? 'text-[#FE8301]' : 'text-[#ED8BFA]'}`}>
+                                                            {path}
+                                                        </h3>
+                                                        <p className="text-gray-400 text-sm leading-relaxed">
+                                                            {path === 'BOOMS' 
+                                                                ? 'Sistema integral para alinear marketing y ventas hacia un crecimiento predecible.' 
+                                                                : 'Enfoque técnico y estratégico para maximizar el ROI de la plataforma HubSpot.'}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex gap-4">
+                                                        <div className="flex-1 p-6 bg-white/5 rounded-3xl text-center">
+                                                            <div className="text-[10px] uppercase text-gray-500 mb-2 tracking-widest">Score</div>
+                                                            <div className="text-3xl font-serif">{finalScore}<span className="text-sm text-gray-600">/10</span></div>
+                                                        </div>
+                                                        <div className="flex-1 p-6 bg-white/5 rounded-3xl text-center">
+                                                            <div className="text-[10px] uppercase text-gray-500 mb-2 tracking-widest">Nivel</div>
+                                                            <div className={`text-sm font-bold uppercase ${fitInfo.color}`}>{fitInfo.level}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Columna Acción */}
+                                            <div className="bg-white/5 p-8 md:p-12 rounded-[32px] border border-white/10 flex flex-col justify-center text-center">
+                                                <div className="mb-8">
+                                                    <div className="text-4xl mb-4">{fitInfo.indicator}</div>
+                                                    <p className="text-gray-300 italic">
+                                                        {parseFloat(finalScore) >= 8 ? "Oportunidad de alto valor. Recomendamos sesión estratégica inmediata." : "Oportunidad con matices. Requiere análisis detallado antes de avanzar."}
+                                                    </p>
+                                                </div>
+                                                
+                                                <a href={mailtoLink} className="w-full bg-white text-black hover:bg-[#FE8301] hover:text-white font-bold rounded-2xl px-6 py-5 transition-all flex items-center justify-center gap-3 mb-6">
+                                                    Enviar a Jairo
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                </a>
+
+                                                <button onClick={() => { setStep(0); setClientName(''); setScores([]); }} className="text-xs text-gray-600 hover:text-white transition-colors">
+                                                    Escalear otra cuenta
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
                 </div>
-                <button 
-                  onClick={handleNext}
-                  disabled={clientName.trim() === ''}
-                  className="w-full bg-[#FE8301] hover:bg-[#e07502] disabled:bg-white/10 disabled:text-white/30 text-black font-semibold rounded-xl px-6 py-4 transition-all"
-                >
-                  Escanear cliente
-                </button>
-              </div>
-            </div>
-          )}
+            );
+        }
 
-          {/* PASO 1 - CONTEXTO */}
-          {step === 1 && (
-            <div className="animate-fade-in w-full flex flex-col gap-6">
-              <div className="text-center mb-4">
-                <h2 className="text-3xl font-serif text-white">¿Qué quieres evaluar?</h2>
-                <p className="text-gray-400 mt-2 text-sm">Cliente: {clientName}</p>
-              </div>
-              
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={() => { setEvalType('Un prospecto nuevo (Sales)'); handleNext(); }}
-                  className="glass-card hover:bg-white/10 hover:border-[#FE8301]/50 text-left px-6 py-5 rounded-xl transition-all group"
-                >
-                  <span className="block text-lg text-white font-medium group-hover:text-[#FE8301] transition-colors">
-                    Un prospecto nuevo
-                  </span>
-                  <span className="block text-sm text-gray-400 mt-1">Equipo de Sales</span>
-                </button>
-                
-                <button 
-                  onClick={() => { setEvalType('Un cliente actual (Customer Success)'); handleNext(); }}
-                  className="glass-card hover:bg-white/10 hover:border-[#FE8301]/50 text-left px-6 py-5 rounded-xl transition-all group"
-                >
-                  <span className="block text-lg text-white font-medium group-hover:text-[#FE8301] transition-colors">
-                    Un cliente actual
-                  </span>
-                  <span className="block text-sm text-gray-400 mt-1">Equipo de Customer Success</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* PASO 2 - DIAGNÓSTICO (Selección de Ruta) */}
-          {step === 2 && (
-            <div className="animate-fade-in w-full flex flex-col gap-6">
-              <div className="text-center mb-2">
-                <span className="text-[#FE8301] text-xs font-bold uppercase tracking-widest mb-2 block">Paso 1 de 2</span>
-                <h2 className="text-2xl font-serif text-white">¿Cuál es el principal reto de {clientName} hoy?</h2>
-              </div>
-              
-              <div className="flex flex-col gap-3 overflow-y-auto max-h-[60vh] pr-2 pb-4 custom-scrollbar">
-                {CHALLENGES.map((item, index) => (
-                  <button 
-                    key={index}
-                    onClick={() => handleChallengeSelect(item.path)}
-                    className="glass-card hover:bg-[#FE8301]/10 border border-white/5 hover:border-[#FE8301] text-left px-5 py-4 rounded-xl transition-all text-sm md:text-base leading-relaxed text-white"
-                  >
-                    {item.text}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* PASO 3 - ICP DINÁMICO */}
-          {step === 3 && (
-            <div className="animate-fade-in w-full flex flex-col gap-6">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[#ED8BFA] text-xs font-bold uppercase tracking-widest">
-                  Scanner Estratégico
-                </span>
-                <span className="text-gray-500 text-xs font-mono">
-                  {icpStep + 1} / {(path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST).length}
-                </span>
-              </div>
-
-              {/* Barra de progreso */}
-              <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-[#FE8301] to-[#ED8BFA] h-full transition-all duration-300"
-                  style={{ width: `${((icpStep + 1) / 3) * 100}%` }}
-                />
-              </div>
-              
-              <div className="mt-4">
-                <h2 className="text-2xl font-serif text-white leading-tight mb-8">
-                  {(path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST)[icpStep].question}
-                </h2>
-
-                <div className="flex flex-col gap-3">
-                  {(path === 'BOOMS' ? ICP_BOOMS : ICP_BOOST)[icpStep].options.map((option, index) => (
-                    <button 
-                      key={index}
-                      onClick={() => handleIcpSelect(option.score)}
-                      className="glass-card hover:bg-white/10 hover:border-white/30 text-left px-5 py-4 rounded-xl transition-all text-sm md:text-base text-white"
-                    >
-                      {option.text}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="text-center mt-6">
-                <span className="text-gray-500 text-xs italic animate-pulse">
-                  {MICROCOPIES[icpStep]}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* PASO 4 - RESULTADO FINAL */}
-          {step === 4 && (
-            <div className="animate-fade-in w-full flex flex-col gap-6 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden">
-              {/* Fondo decorativo del resultado */}
-              <div className={`absolute top-0 left-0 w-full h-1 ${path === 'BOOMS' ? 'bg-[#FE8301]' : 'bg-[#ED8BFA]'}`}></div>
-
-              <div className="text-center mb-2">
-                <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Diagnóstico Completado</span>
-                <h2 className="text-3xl font-serif text-white mt-3 mb-1">{clientName}</h2>
-              </div>
-
-              {/* Solución Recomendada */}
-              <div className="glass-card rounded-xl p-5 border border-white/5 bg-white/5 text-center">
-                <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Solución Recomendada</div>
-                <h3 className={`text-2xl font-serif font-bold mb-2 ${path === 'BOOMS' ? 'text-[#FE8301]' : 'text-[#ED8BFA]'}`}>
-                  {path}
-                </h3>
-                <div className="text-white text-sm font-medium mb-2">
-                  {path === 'BOOMS' ? 'Metodología de Generación de Demanda' : 'Metodología de Adopción de HubSpot'}
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  {path === 'BOOMS' 
-                    ? 'Diseñada para empresas que necesitan construir un sistema estructurado de generación de oportunidades, alineando marketing, ventas y operación para crecer de forma predecible.' 
-                    : 'Diseñada para empresas que necesitan maximizar el valor de HubSpot, asegurando correcta adopción del equipo y uso estratégico del CRM.'}
-                </p>
-              </div>
-
-              {/* Puntuación y Fit */}
-              <div className="flex gap-4">
-                <div className="flex-1 glass-card rounded-xl p-4 text-center border border-white/5">
-                  <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Score B&O</div>
-                  <div className="text-2xl font-serif text-white">
-                    {finalScore} <span className="text-sm text-gray-500 font-sans">/ 10</span>
-                  </div>
-                </div>
-                <div className="flex-1 glass-card rounded-xl p-4 text-center border border-white/5 flex flex-col justify-center items-center">
-                  <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Nivel de Fit</div>
-                  <div className={`text-sm font-bold flex items-center gap-1 ${fitInfo.color}`}>
-                    {fitInfo.indicator} {fitInfo.level}
-                  </div>
-                </div>
-              </div>
-
-              {/* Texto Dinámico Final */}
-              <div className="text-center text-sm md:text-base text-gray-300 font-medium px-2 py-2">
-                {parseFloat(finalScore) >= 8 && path === 'BOOMS' && "👉 Este cliente tiene alto potencial para un proyecto de generación de demanda estructurado."}
-                {parseFloat(finalScore) >= 8 && path === 'BOOST' && "👉 Este cliente necesita maximizar el valor de HubSpot antes de escalar."}
-                {parseFloat(finalScore) >= 5 && parseFloat(finalScore) <= 7 && "👉 Este cliente tiene potencial, pero requiere ciertas condiciones para maximizar resultados."}
-                {parseFloat(finalScore) <= 4 && "👉 Este cliente no es ideal para Black & Orange en este momento."}
-              </div>
-
-              {/* CTA Final */}
-              <div className="mt-4 border-t border-white/10 pt-6">
-                <p className="text-center text-sm text-white mb-4">¿Quieres que evaluemos este caso contigo?</p>
-                <a 
-                  href={mailtoLink}
-                  target="_top"
-                  rel="noopener noreferrer"
-                  className="w-full bg-white text-black hover:bg-gray-200 font-semibold rounded-xl px-6 py-4 transition-all flex justify-center items-center gap-2"
-                >
-                  Evaluar con Black & Orange
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                </a>
-                <button 
-                  onClick={() => { setStep(0); setClientName(''); setScores([]); }}
-                  className="w-full text-center text-xs text-gray-500 hover:text-white mt-4 transition-colors"
-                >
-                  Escanear otro cliente
-                </button>
-              </div>
-
-            </div>
-          )}
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
