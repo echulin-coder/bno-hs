@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner de Clientes — Black & Orange</title>
     
-    <!-- Scripts de React y Babel -->
+    <!-- Scripts de React y Babel para procesar JSX en el navegador -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS para el diseño responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
@@ -76,9 +76,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // --- CONFIGURACIÓN DE DATOS ---
         const CHALLENGES = [
             { text: "Se generan leads, pero no hay crecimiento predecible o de forma consistente", path: "BOOMS" },
-            { text: "Marketing, ventas y operación no están alineados", path: "BOOMS" },
             { text: "No existe una estrategia clara de crecimiento", path: "BOOMS" },
             { text: "Se está implementando HubSpot, pero aún no se percibe el verdadero valor", path: "BOOST" },
             { text: "El equipo no usa correctamente el CRM", path: "BOOST" },
@@ -187,13 +187,13 @@
 
             return (
                 <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 md:p-12">
-                    {/* Fondos dinámicos */}
+                    {/* Fondos dinámicos (Blobs) */}
                     <div className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] gradient-blob-1 rounded-full pointer-events-none blur-3xl opacity-40" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] gradient-blob-2 rounded-full pointer-events-none blur-3xl opacity-30" />
                     
                     <div className="relative z-10 w-full max-w-md md:max-w-3xl lg:max-w-4xl transition-all duration-500">
                         
-                        {/* Logo superior */}
+                        {/* Header con Logo */}
                         <div className="flex justify-center md:justify-start mb-12 opacity-90">
                             <div className="flex items-center gap-3">
                                 <div className="w-5 h-5 bg-[#FE8301] rounded-sm shadow-[0_0_15px_rgba(254,131,1,0.3)]"></div>
@@ -201,10 +201,10 @@
                             </div>
                         </div>
 
-                        {/* Contenido Principal */}
+                        {/* Área de Contenido Dinámico */}
                         <div className="min-h-[500px] flex flex-col justify-center">
                             
-                            {/* PASO 0 - INICIO */}
+                            {/* PASO 0: Pantalla de Bienvenida */}
                             {step === 0 && (
                                 <div className="animate-fade-in flex flex-col md:flex-row items-center gap-12 text-center md:text-left">
                                     <div className="flex-1">
@@ -235,7 +235,7 @@
                                 </div>
                             )}
 
-                            {/* PASO 1 - TIPO EVALUACIÓN */}
+                            {/* PASO 1: Contexto de Evaluación */}
                             {step === 1 && (
                                 <div className="animate-fade-in text-center max-w-2xl mx-auto w-full">
                                     <h2 className="text-4xl font-serif mb-4 italic text-white">¿Cuál es el contexto de {clientName}?</h2>
@@ -267,7 +267,7 @@
                                 </div>
                             )}
 
-                            {/* PASO 2 - RETOS (Grilla en laptop) */}
+                            {/* PASO 2: Selección de Desafío */}
                             {step === 2 && (
                                 <div className="animate-fade-in w-full max-w-4xl mx-auto">
                                     <div className="text-center md:text-left mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -292,7 +292,7 @@
                                 </div>
                             )}
 
-                            {/* PASO 3 - PREGUNTAS ICP */}
+                            {/* PASO 3: Cuestionario ICP */}
                             {step === 3 && (
                                 <div className="animate-fade-in max-w-2xl mx-auto w-full">
                                     <div className="flex justify-between items-center mb-6">
@@ -326,14 +326,14 @@
                                 </div>
                             )}
 
-                            {/* PASO 4 - RESULTADO (Diseño Premium Laptop) */}
+                            {/* PASO 4: Resultados Finales */}
                             {step === 4 && (
                                 <div className="animate-fade-in w-full max-w-4xl mx-auto">
                                     <div className="glass-card rounded-[40px] p-8 md:p-16 relative overflow-hidden border-white/10 shadow-2xl">
                                         <div className={`absolute top-0 left-0 w-full h-2 ${path === 'BOOMS' ? 'bg-[#FE8301]' : 'bg-[#ED8BFA]'}`}></div>
                                         
                                         <div className="grid md:grid-cols-2 gap-12 items-center">
-                                            {/* Columna Info */}
+                                            {/* Columna de Datos de Evaluación */}
                                             <div>
                                                 <div className="mb-8">
                                                     <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Reporte de Fit</span>
@@ -348,8 +348,8 @@
                                                         </h3>
                                                         <p className="text-gray-400 text-sm leading-relaxed">
                                                             {path === 'BOOMS' 
-                                                                ? 'Sistema integral para alinear marketing y ventas hacia un crecimiento predecible.' 
-                                                                : 'Enfoque técnico y estratégico para maximizar el ROI de la plataforma HubSpot.'}
+                                                                ? 'Servicios de Marketing para generación de demanda.' 
+                                                                : 'Servicios de implementación y adopción de CRM'}
                                                         </p>
                                                     </div>
 
@@ -366,12 +366,14 @@
                                                 </div>
                                             </div>
 
-                                            {/* Columna Acción */}
+                                            {/* Columna de Llamada a la Acción */}
                                             <div className="bg-white/5 p-8 md:p-12 rounded-[32px] border border-white/10 flex flex-col justify-center text-center">
                                                 <div className="mb-8">
                                                     <div className="text-4xl mb-4">{fitInfo.indicator}</div>
                                                     <p className="text-gray-300 italic">
-                                                        {parseFloat(finalScore) >= 8 ? "Oportunidad de alto valor. Recomendamos sesión estratégica inmediata." : "Oportunidad con matices. Requiere análisis detallado antes de avanzar."}
+                                                        {parseFloat(finalScore) >= 8 
+                                                            ? "Oportunidad de alto valor. Recomendamos sesión estratégica inmediata." 
+                                                            : "Oportunidad con matices. Requiere análisis detallado antes de avanzar."}
                                                     </p>
                                                 </div>
                                                 
@@ -380,8 +382,11 @@
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                                                 </a>
 
-                                                <button onClick={() => { setStep(0); setClientName(''); setScores([]); }} className="text-xs text-gray-600 hover:text-white transition-colors">
-                                                    Escalear otra cuenta
+                                                <button 
+                                                    onClick={() => { setStep(0); setClientName(''); setScores([]); }} 
+                                                    className="text-xs text-gray-600 hover:text-white transition-colors"
+                                                >
+                                                    Escanear otra cuenta
                                                 </button>
                                             </div>
                                         </div>
@@ -395,6 +400,7 @@
             );
         }
 
+        // Renderizado de la aplicación
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
